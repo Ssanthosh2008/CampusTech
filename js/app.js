@@ -1,5 +1,5 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
-import { ALLOWED_EMAIL_DOMAIN, supabasePublishableKey, supabaseUrl } from "./supabase-config.js";
+import { supabasePublishableKey, supabaseUrl } from "./supabase-config.js";
 
 const PAGE_SIZE = 20;
 const supabase = createClient(supabaseUrl, supabasePublishableKey);
@@ -100,7 +100,7 @@ async function handleItemAction(event) {
   const { error } = await supabase.from("items").delete().eq("id", item.id); if (error) return showMessage(error.message || "Could not delete that post.", true); await loadItems(true); showMessage("Post deleted.");
 }
 async function applySession(session) {
-  const user = session?.user || null; if (user && !user.email?.toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN.toLowerCase()}`)) { await supabase.auth.signOut(); setSignedInUI(null); showMessage(`Please use your college email ending in @${ALLOWED_EMAIL_DOMAIN}.`, true); return; }
+  const user = session?.user || null;
   setSignedInUI(user); if (user) { showMessage(""); await loadItems(true); }
 }
 elements.signIn.addEventListener("click", signIn); elements.gateSignIn.addEventListener("click", signIn); elements.signOut.addEventListener("click", () => supabase.auth.signOut());

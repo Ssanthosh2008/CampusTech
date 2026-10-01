@@ -38,19 +38,6 @@ create table public.returns (
   created_at timestamptz default now()
 );
 
--- Domain restriction: change yourcollege.edu to the real college domain before enabling sign-in.
-create or replace function public.enforce_college_domain()
-returns trigger language plpgsql security definer set search_path = public as $$
-begin
-  if new.email is null or lower(new.email) not like '%@yourcollege.edu' then
-    raise exception 'Only college email addresses are allowed';
-  end if;
-  return new;
-end; $$;
-create trigger check_domain before insert on auth.users
-  for each row execute function public.enforce_college_domain();
-revoke execute on function public.enforce_college_domain() from public, anon, authenticated;
-
 -- Auto-create profile on signup
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
