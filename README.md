@@ -4,6 +4,27 @@
 
 CampusTech is a minimal, mobile-first lost-and-found board for college communities. Anyone with a Google account can sign in through Supabase Auth, post lost or found items, browse recent posts, and manage returns.
 
+## Who should use CampusTech
+
+- **Students and campus staff** who need a simple way to report lost or found items.
+- **Campus clubs, departments, or admins** who want to host a shared lost-and-found board.
+- **Developers/maintainers** who need a static, low-ops app that can be deployed quickly.
+
+## Quick start for first-time setup
+
+1. Clone this repository.
+2. Create a Supabase project.
+3. Run [`supabase/schema.sql`](supabase/schema.sql) in Supabase SQL Editor.
+4. Configure Google OAuth in Google Cloud and Supabase (see full steps below).
+5. Update `js/supabase-config.js` with your Supabase project URL and publishable key.
+6. Run the app locally:
+
+   ```bash
+   python3 -m http.server 8000
+   ```
+
+7. Open `http://localhost:8000`, sign in with Google, and test posting items.
+
 ## Stack
 
 - Plain HTML, CSS, and vanilla JavaScript ES modules
@@ -167,3 +188,7 @@ Images are optional. A selected image is resized and JPEG-compressed in the brow
 - [Supabase: Sign in with Google](https://supabase.com/docs/guides/auth/social-login/auth-google)
 - [Supabase: Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls)
 - [Google Cloud: Manage OAuth clients](https://support.google.com/cloud/answer/15549257)
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
