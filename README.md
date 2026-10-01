@@ -2,27 +2,27 @@
 
 **Lost something? Found something? Post it here.**
 
-CampusTech is a minimal, mobile-first lost-and-found board for college communities. Students sign in with Google, post lost or found items, browse recent posts, and manage their own posts.
+CampusTech is a minimal, mobile-first lost-and-found board for college communities. Students sign in with Google through Supabase Auth, post lost or found items, browse recent posts, and manage their own posts.
 
 ## Stack
 
 - Plain HTML, CSS, and vanilla JavaScript ES modules
-- Firebase Authentication (Google provider)
-- Cloud Firestore
-- Firebase Hosting
-- No Firebase Storage: images use an optional URL or client-side JPEG compression stored in Firestore under the 100 KB limit
+- Supabase Auth with Google OAuth
+- Supabase Postgres with Row Level Security
+- Firebase Hosting for the static frontend (optional; any static host works)
+- No file storage: images use an optional URL or client-side JPEG compression stored in Postgres under the 100 KB limit
 
-## Firebase setup
+## Supabase setup
 
-1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/).
-2. Create a Firestore database in production mode.
-3. Enable **Authentication → Sign-in method → Google**.
-4. Add your deployed Hosting domain (and `localhost` for local testing) under **Authentication → Settings → Authorized domains**.
-5. Open **Project settings → Your apps**, register a Web app, and copy its config.
-6. Replace the placeholder values in `js/firebase-config.js` with that config.
-7. Change `ALLOWED_EMAIL_DOMAIN` in the same file from `yourcollege.edu` to your college domain. The app rejects accounts outside this domain after Google sign-in.
+The app is connected to the Supabase project configured in `js/supabase-config.js`.
 
-> Keep `js/firebase-config.js` free of service-account credentials. Firebase web config values are client-side identifiers; Firestore rules are the security boundary.
+1. In the Supabase Dashboard, open **Authentication → Providers → Google** and enable Google OAuth.
+2. Create Google OAuth credentials in Google Cloud Console. Add the Supabase callback URL shown in the provider settings as an authorized redirect URI.
+3. Under **Authentication → URL Configuration**, add your local URL (for example `http://localhost:8000`) and deployed site URL to the redirect allow list.
+4. Change `ALLOWED_EMAIL_DOMAIN` in `js/supabase-config.js` from `yourcollege.edu` to your college domain. The app rejects accounts outside this domain after OAuth sign-in.
+5. The `items` table and RLS policies are already applied to the connected project. The reproducible SQL is in [`supabase/schema.sql`](supabase/schema.sql).
+
+> The URL and publishable key in `js/supabase-config.js` are browser-safe. Database access is protected by Supabase Row Level Security; never put a service-role key in the frontend.
 
 ## Run locally
 
@@ -34,33 +34,33 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000`.
 
-## Deploy
+## Deploy the frontend
 
-Install the Firebase CLI if needed, then authenticate and select your project:
+Firebase Hosting is retained only as a static hosting option:
 
 ```bash
 npm install -g firebase-tools
 firebase login
 firebase use --add
-firebase deploy --only firestore:rules,hosting
+firebase deploy --only hosting
 ```
 
-The included `firebase.json` publishes the repository root as Firebase Hosting content. Do not deploy until you have replaced the config placeholders and college domain.
+You can also deploy the repository to another static host. Add that site URL to Supabase Auth's redirect allow list.
 
-## Firestore data model
+## Database model
 
-Collection: `items`
+Table: `public.items`
 
 ```text
 type, title, description, category, location, date, contact,
-imageData, userId, userName, status (open | resolved), createdAt
+image_data, user_id, user_name, status (open | resolved), created_at
 ```
 
-Signed-in users can read and create posts. Only the owner can update or delete a post. Rules validate field names, types, and string sizes. The UI reads 20 posts at a time and provides **Load more** for additional results.
+Authenticated users can read and create posts. Only the owner can update or delete a post. RLS and database checks validate ownership, field names, types, and string sizes. The UI reads 20 posts at a time and provides **Load more** for additional results.
 
 ## MVP notes
 
 - Search matches titles on the currently loaded posts.
 - Filters match Lost/Found and the listed category values.
 - Owners can mark their own open posts resolved or delete them.
-- No admin dashboard, chat, notifications, analytics, or Firebase Storage is included.
+- No admin dashboard, chat, notifications, analytics, or file storage is included.
