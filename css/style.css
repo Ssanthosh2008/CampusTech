@@ -36,7 +36,7 @@ h2 { margin: 4px 0 0; font-size: 1.25rem; }
 .button-secondary { color: var(--ink); background: var(--surface); border: 1px solid var(--line); }
 .button-secondary:hover, .button-quiet:hover { border-color: #b9c2d0; background: #f0f3f8; }
 .button-quiet { color: var(--muted); background: transparent; }
-.toolbar { display: grid; grid-template-columns: minmax(180px, 1fr) auto auto auto; gap: 10px; align-items: center; margin-bottom: 22px; }
+.toolbar { display: grid; grid-template-columns: minmax(180px, 1fr) auto auto auto auto; gap: 10px; align-items: center; margin-bottom: 22px; }
 input, select, textarea { width: 100%; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); padding: 10px 12px; }
 textarea { resize: vertical; }
 .panel { margin-bottom: 28px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 8px 28px rgba(35, 48, 78, .06); }
@@ -57,13 +57,15 @@ label { display: grid; gap: 6px; color: var(--muted); font-size: .85rem; font-we
 .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 8px; color: #41506b; background: #edf1f7; font-size: .7rem; font-weight: 800; text-transform: uppercase; }
 .badge-lost { color: #9e3b25; background: #fff0eb; }
 .badge-found { color: #16794c; background: #e8f7ef; }
-.badge-resolved { color: #667085; background: #eef0f3; }
+.badge-resolved, .badge-returned { color: #16794c; background: #e8f7ef; }
 .item-card h3 { margin: 0 0 8px; font-size: 1.1rem; }
 .item-description { display: -webkit-box; overflow: hidden; margin: 0 0 12px; color: var(--muted); font-size: .9rem; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .item-details { display: grid; gap: 5px; margin: auto 0 14px; color: var(--muted); font-size: .82rem; }
 .item-details strong { color: var(--ink); }
 .item-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .item-actions .button { padding: 8px 10px; font-size: .8rem; }
+.return-details { margin: 0 0 14px; padding: 10px; border-radius: 9px; color: #41506b; background: #f3faf6; font-size: .8rem; }
+.return-details strong { color: var(--success); }
 .danger-button { color: var(--danger); border-color: #f1c4c8; }
 .empty-state { margin: 20px 0; padding: 36px 20px; border: 1px dashed #cbd2df; border-radius: 14px; text-align: center; background: rgba(255,255,255,.55); }
 .empty-state p { color: var(--muted); }
