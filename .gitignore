@@ -1,0 +1,12 @@
+# Firebase local cache
+.firebase/
+.firebase-debug.log
+firestore-debug.log
+
+# OS/editor files
+.DS_Store
+.vscode/
+
+# Local secrets and test artifacts
+.env
+*.local
