@@ -1,0 +1,27 @@
+/* Developed by Pughal Jeyaprakash */
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+import { isDemo, supabasePublishableKey, supabaseUrl } from "./supabase-config.js";
+export const supabase = isDemo ? null : createClient(supabaseUrl, supabasePublishableKey);
+const seed=[
+ {id:"demo-1",type:"lost",title:"Silver AirPods case",description:"Small silver case with a blue sticker inside the lid.",category:"Electronics",location:"Central Library",item_date:"2026-09-30",status:"open",created_at:"2026-10-02T07:10:00Z",image_url:""},
+ {id:"demo-2",type:"found",title:"Blue water bottle",description:"Matte blue bottle left beside the basketball court.",category:"Water Bottles",location:"Sports Complex",item_date:"2026-10-01",status:"open",created_at:"2026-10-02T06:30:00Z",image_url:""},
+ {id:"demo-3",type:"lost",title:"Student ID card",description:"Name starts with A. Found near the north gate last seen.",category:"ID & Cards",location:"North Gate",item_date:"2026-09-29",status:"open",created_at:"2026-10-01T15:40:00Z",image_url:""},
+ {id:"demo-4",type:"found",title:"Black canvas tote bag",description:"Contains two notebooks and a green highlighter.",category:"Bags",location:"Design Studio",item_date:"2026-09-30",status:"returned",created_at:"2026-10-01T12:20:00Z",image_url:""},
+ {id:"demo-5",type:"lost",title:"Brass keyring",description:"Three keys and a tiny orange tag.",category:"Keys",location:"Cafeteria",item_date:"2026-09-28",status:"open",created_at:"2026-09-30T09:00:00Z",image_url:""},
+ {id:"demo-6",type:"found",title:"Calculus notebook",description:"Blue graph-paper notebook with handwritten chapter 4 notes.",category:"Books & Stationery",location:"Engineering Block",item_date:"2026-09-27",status:"open",created_at:"2026-09-29T11:00:00Z",image_url:""},
+ {id:"demo-7",type:"lost",title:"Grey hoodie",description:"Size M, small stitched campus crest on the sleeve.",category:"Clothing",location:"Auditorium",item_date:"2026-09-26",status:"open",created_at:"2026-09-28T16:00:00Z",image_url:""},
+ {id:"demo-8",type:"found",title:"Wallet with cards",description:"Brown wallet handed in at the student office.",category:"Wallets",location:"Student Office",item_date:"2026-09-25",status:"returned",created_at:"2026-09-27T08:00:00Z",image_url:""}
+];
+let demoItems=structuredClone(seed);let demoUser=null;
+export const categories=["Electronics","ID & Cards","Keys","Bags","Books & Stationery","Wallets","Clothing","Water Bottles","Other"];
+export async function getSession(){return isDemo?{data:{session:null}}:supabase.auth.getSession()}
+export function onAuthChange(cb){return isDemo?{data:{subscription:{unsubscribe(){}}}}:supabase.auth.onAuthStateChange(cb)}
+export async function signIn(){if(isDemo){demoUser={id:"demo-user",email:"demo@campus.local",user_metadata:{full_name:"Demo Student"}};return {data:{user:demoUser},error:null}}return supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:`${location.origin}${location.pathname}${location.hash}`}})}
+export async function signOut(){if(isDemo){demoUser=null;return {error:null}}return supabase.auth.signOut()}
+export async function listItems({limit=20,offset=0}={}){if(isDemo)return {data:demoItems.slice(offset,offset+limit),error:null};return supabase.from("items").select("*, item_contacts(contact), returns(*)").order("created_at",{ascending:false}).range(offset,offset+limit-1)}
+export async function createItem(item,file,userId){if(isDemo){const next={...item,id:`demo-${Date.now()}`,user_id:userId,created_at:new Date().toISOString(),status:"open",image_url:""};demoItems=[next,...demoItems];return {data:next,error:null}}let imageUrl=null;if(file){const blob=await compressImage(file);const path=`${userId}/${crypto.randomUUID()}.jpg`;const up=await supabase.storage.from("item-images").upload(path,blob,{contentType:"image/jpeg"});if(up.error)throw up.error;imageUrl=supabase.storage.from("item-images").getPublicUrl(path).data.publicUrl}const { contact: contactValue, ...itemFields } = item;const {data,error}=await supabase.from("items").insert({...itemFields,user_id:userId,image_url:imageUrl}).select().single();if(error)return {data,error};const contact=await supabase.from("item_contacts").insert({item_id:data.id,contact:contactValue}).select().single();return {data,error:contact.error}}
+export async function createReturn(record){if(isDemo){demoItems=demoItems.map(x=>x.id===record.item_id?{...x,status:"returned",returns:[record]}:x);return {error:null}}return supabase.from("returns").insert(record)}
+export async function deleteItem(id){if(isDemo){demoItems=demoItems.filter(x=>x.id!==id);return {error:null}}return supabase.from("items").delete().eq("id",id)}
+function compressImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error("Could not read image."));reader.onload=()=>{const img=new Image();img.onerror=()=>reject(new Error("Unsupported image."));img.onload=()=>{const scale=Math.min(1,1200/Math.max(img.width,img.height));const c=document.createElement("canvas");c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext("2d").drawImage(img,0,0,c.width,c.height);let q=.8;const done=()=>c.toBlob(b=>b&&b.size<150000?resolve(b):(q-=.1,q>.3?done():reject(new Error("Please choose a smaller photo."))),"image/jpeg",q);done()};img.src=reader.result};reader.readAsDataURL(file)})}
+
+export { isDemo };

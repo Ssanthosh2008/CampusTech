@@ -1,112 +1,22 @@
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
-import { supabasePublishableKey, supabaseUrl } from "./supabase-config.js";
-
-const PAGE_SIZE = 20;
-const supabase = createClient(supabaseUrl, supabasePublishableKey);
-const $ = (selector) => document.querySelector(selector);
-const elements = {
-  authGate: $("#auth-gate"), appContent: $("#app-content"), signIn: $("#sign-in-button"), gateSignIn: $("#gate-sign-in-button"),
-  signOut: $("#sign-out-button"), userLabel: $("#user-label"), message: $("#message"), postPanel: $("#post-panel"),
-  form: $("#item-form"), newPost: $("#new-post-button"), closePost: $("#close-post-button"), cancelPost: $("#cancel-post-button"),
-  imageFile: $("#image-file"), imageNote: $("#image-note"), search: $("#search-input"), typeFilter: $("#type-filter"),
-  categoryFilter: $("#category-filter"), statusFilter: $("#status-filter"), itemsList: $("#items-list"), emptyItems: $("#empty-items"),
-  resultCount: $("#result-count"), loadMore: $("#load-more-button"), returnPanel: $("#return-panel"), returnForm: $("#return-form"),
-  returnTitle: $("#return-item-title"), closeReturn: $("#close-return-button"), cancelReturn: $("#cancel-return-button")
-};
-let currentUser = null;
-let allItems = [];
-let page = 0;
-let hasMore = false;
-
-function showMessage(text, isError = false) {
-  elements.message.textContent = text;
-  elements.message.classList.toggle("error", isError);
-  elements.message.hidden = !text;
-}
-function setSignedInUI(user) {
-  currentUser = user;
-  const signedIn = Boolean(user);
-  elements.authGate.hidden = signedIn; elements.appContent.hidden = !signedIn; elements.signIn.hidden = signedIn;
-  elements.signOut.hidden = !signedIn; elements.userLabel.hidden = !signedIn;
-  elements.userLabel.textContent = signedIn ? (user.user_metadata?.full_name || user.email) : "";
-}
-async function signIn() {
-  const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
-  if (error) showMessage(error.message || "Sign-in failed. Please try again.", true);
-}
-function closePostForm() { elements.postPanel.hidden = true; elements.form.reset(); elements.imageNote.textContent = "No image selected."; }
-function closeReturnForm() { elements.returnPanel.hidden = true; elements.returnForm.reset(); }
-function escapeHtml(value = "") { return String(value).replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c])); }
-function formatDate(value) { if (!value) return "Not set"; const date = new Date(`${value}T00:00:00`); return Number.isNaN(date.getTime()) ? "Not set" : date.toLocaleDateString(undefined, { dateStyle: "medium" }); }
-function formatPostedAt(value) { if (!value) return "Just now"; const date = new Date(value); return Number.isNaN(date.getTime()) ? "Just now" : date.toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
-function filteredItems() {
-  const search = elements.search.value.trim().toLowerCase(); const type = elements.typeFilter.value;
-  const category = elements.categoryFilter.value; const status = elements.statusFilter.value;
-  return allItems.filter((item) => (!search || item.title.toLowerCase().includes(search)) && (type === "all" || item.type === type) && (category === "all" || item.category === category) && (status === "all" || item.status === status));
-}
-function returnDetailsMarkup(item, isOwner) {
-  const record = item.returns?.[0];
-  if (!record || !isOwner) return "";
-  return `<div class="return-details"><strong>Return recorded</strong><br>To ${escapeHtml(record.returned_to_name)} on ${escapeHtml(formatDate(record.returned_on))}${record.handover_location ? ` · ${escapeHtml(record.handover_location)}` : ""}${record.verification_notes ? `<br>${escapeHtml(record.verification_notes)}` : ""}</div>`;
-}
-function renderItems() {
-  const items = filteredItems(); elements.resultCount.textContent = `${items.length} ${items.length === 1 ? "post" : "posts"}`; elements.emptyItems.hidden = items.length !== 0;
-  elements.itemsList.innerHTML = items.map((item) => {
-    const isOwner = currentUser?.id === item.user_id; const statusBadge = item.status === "returned" ? '<span class="badge badge-returned">Returned</span>' : '<span class="badge">Open</span>';
-    const image = item.image_url ? `<img class="item-image" src="${escapeHtml(item.image_url)}" alt="" loading="lazy">` : "";
-    const action = item.status === "open" && isOwner ? `<button class="button button-secondary" data-action="return" data-id="${item.id}">Mark as Returned</button>` : "";
-    return `<article class="item-card">${image}<div class="item-body"><div class="item-meta"><span class="badge badge-${escapeHtml(item.type)}">${escapeHtml(item.type)}</span><span class="badge">${escapeHtml(item.category)}</span>${statusBadge}</div><h3>${escapeHtml(item.title)}</h3><p class="item-description">${escapeHtml(item.description || "No description provided.")}</p><div class="item-details"><span><strong>Where:</strong> ${escapeHtml(item.location || "Not provided")}</span><span><strong>When:</strong> ${escapeHtml(formatDate(item.item_date))}</span><span><strong>Contact:</strong> ${escapeHtml(item.contact || "Not provided")}</span><span>Posted ${escapeHtml(formatPostedAt(item.created_at))}</span></div>${returnDetailsMarkup(item, isOwner)}${isOwner ? `<div class="item-actions">${action}<button class="button button-secondary danger-button" data-action="delete" data-id="${item.id}">Delete</button></div>` : ""}</div></article>`;
-  }).join("");
-  elements.loadMore.hidden = !hasMore || items.length === 0;
-}
-async function loadItems(reset = false) {
-  if (reset) { page = 0; allItems = []; }
-  const from = page * PAGE_SIZE; const { data, error } = await supabase.from("items").select("*, returns(*)").order("created_at", { ascending: false }).range(from, from + PAGE_SIZE - 1);
-  if (error) return showMessage(`Could not load posts: ${error.message}`, true);
-  allItems = reset ? data : [...allItems, ...data]; hasMore = data.length === PAGE_SIZE; page += 1; renderItems();
-}
-function compressImage(file) {
-  return new Promise((resolve, reject) => {
-    if (!file) return resolve(null); const reader = new FileReader(); reader.onerror = () => reject(new Error("Could not read that image."));
-    reader.onload = () => { const image = new Image(); image.onerror = () => reject(new Error("That image format could not be processed.")); image.onload = () => {
-      const scale = Math.min(1, 1000 / Math.max(image.width, image.height)); const canvas = document.createElement("canvas"); canvas.width = Math.max(1, Math.round(image.width * scale)); canvas.height = Math.max(1, Math.round(image.height * scale)); canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
-      let quality = 0.72; let data = canvas.toDataURL("image/jpeg", quality); while (data.length > 150 * 1024 * 1.37 && quality > 0.15) { quality -= 0.1; data = canvas.toDataURL("image/jpeg", quality); }
-      if (data.length > 150 * 1024 * 1.37) return reject(new Error("Please choose a smaller image (under 150 KB after compression).")); resolve(data);
-    }; image.src = reader.result; }; reader.readAsDataURL(file);
-  });
-}
-async function uploadImage(file) {
-  if (!file) return "";
-  const dataUrl = await compressImage(file); const response = await fetch(dataUrl); const blob = await response.blob();
-  const path = `${currentUser.id}/${crypto.randomUUID()}.jpg`; const { error } = await supabase.storage.from("item-images").upload(path, blob, { contentType: "image/jpeg", upsert: false });
-  if (error) throw error; return supabase.storage.from("item-images").getPublicUrl(path).data.publicUrl;
-}
-async function createItem(event) {
-  event.preventDefault(); if (!currentUser) return; const formData = new FormData(elements.form); const imageFile = elements.imageFile.files[0]; const imageUrl = formData.get("imageUrl").trim();
-  if (imageFile && imageUrl) return showMessage("Use an image URL or a file, not both.", true); const submitButton = elements.form.querySelector("[type=submit]"); submitButton.disabled = true;
-  try { const imageUrlValue = imageFile ? await uploadImage(imageFile) : imageUrl; const { error } = await supabase.from("items").insert({ user_id: currentUser.id, type: formData.get("type"), title: formData.get("title").trim(), description: formData.get("description").trim() || null, category: formData.get("category"), location: formData.get("location").trim() || null, item_date: formData.get("itemDate") || null, contact: formData.get("contact").trim() || null, image_url: imageUrlValue || null }); if (error) throw error; closePostForm(); await loadItems(true); showMessage("Your post is live."); }
-  catch (error) { showMessage(error.message || "Could not publish the post.", true); } finally { submitButton.disabled = false; }
-}
-function openReturnForm(item) { elements.returnForm.reset(); elements.returnForm.itemId.value = item.id; elements.returnForm.returnedOn.value = new Date().toISOString().slice(0, 10); elements.returnTitle.textContent = `Return: ${item.title}`; elements.returnPanel.hidden = false; elements.returnForm.returnedToName.focus(); }
-async function createReturn(event) {
-  event.preventDefault(); if (!currentUser) return; const formData = new FormData(elements.returnForm); const submitButton = elements.returnForm.querySelector("[type=submit]"); submitButton.disabled = true;
-  try { const { error } = await supabase.from("returns").insert({ item_id: formData.get("itemId"), recorded_by: currentUser.id, returned_to_name: formData.get("returnedToName").trim(), returned_to_contact: formData.get("returnedToContact").trim() || null, returned_on: formData.get("returnedOn"), handover_location: formData.get("handoverLocation").trim() || null, verification_notes: formData.get("verificationNotes").trim() || null }); if (error) throw error; closeReturnForm(); await loadItems(true); showMessage("Return details saved. The item is marked Returned."); }
-  catch (error) { showMessage(error.message || "Could not save return details.", true); } finally { submitButton.disabled = false; }
-}
-async function handleItemAction(event) {
-  const button = event.target.closest("[data-action]"); if (!button) return; const item = allItems.find((candidate) => candidate.id === button.dataset.id);
-  if (!item || item.user_id !== currentUser?.id) return showMessage("You can only manage your own posts.", true);
-  if (button.dataset.action === "return") return openReturnForm(item); if (!window.confirm("Delete this post?")) return;
-  const { error } = await supabase.from("items").delete().eq("id", item.id); if (error) return showMessage(error.message || "Could not delete that post.", true); await loadItems(true); showMessage("Post deleted.");
-}
-async function applySession(session) {
-  const user = session?.user || null;
-  setSignedInUI(user); if (user) { showMessage(""); await loadItems(true); }
-}
-elements.signIn.addEventListener("click", signIn); elements.gateSignIn.addEventListener("click", signIn); elements.signOut.addEventListener("click", () => supabase.auth.signOut());
-elements.newPost.addEventListener("click", () => { elements.postPanel.hidden = false; elements.form.querySelector("[name=title]").focus(); }); elements.closePost.addEventListener("click", closePostForm); elements.cancelPost.addEventListener("click", closePostForm);
-elements.form.addEventListener("submit", createItem); elements.returnForm.addEventListener("submit", createReturn); elements.closeReturn.addEventListener("click", closeReturnForm); elements.cancelReturn.addEventListener("click", closeReturnForm); elements.itemsList.addEventListener("click", handleItemAction);
-elements.loadMore.addEventListener("click", () => loadItems(false)); [elements.search, elements.typeFilter, elements.categoryFilter, elements.statusFilter].forEach((control) => control.addEventListener("input", renderItems));
-elements.imageFile.addEventListener("change", () => { elements.imageNote.textContent = elements.imageFile.files[0] ? "Image will be compressed and uploaded under 150 KB." : "No image selected."; });
-supabase.auth.onAuthStateChange((_event, session) => { void applySession(session); });
-const { data: { session } } = await supabase.auth.getSession(); await applySession(session);
+/* Developed by Pughal Jeyaprakash */
+import { categories, createItem, createReturn, deleteItem, getSession, isDemo, listItems, onAuthChange, signIn, signOut } from "./api.js";
+const app=document.querySelector("#app"),sheet=document.querySelector("#sheet"),content=document.querySelector("#sheet-content"),toast=document.querySelector("#toast");let user=null,items=[],filters={query:"",type:"all",category:"all",returned:false},offset=0,hasMore=true;
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));const today=()=>new Date().toISOString().slice(0,10);const date=v=>v?new Date(`${v}T00:00:00`).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}):"Date not set";const posted=v=>v?new Date(v).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"Just now";
+function notify(msg,error=false){toast.textContent=msg;toast.className=`toast${error?" error":""}`;toast.hidden=false;setTimeout(()=>toast.hidden=true,3400)}
+function setUser(next){user=next;document.querySelector("#auth-button").textContent=user?"Sign out":"Sign in";document.querySelector("#mine-label").textContent=user?"My posts":"Sign in";const av=document.querySelector("#user-avatar");av.hidden=!user;av.textContent=user?(user.user_metadata?.full_name||user.email||"U").slice(0,1).toUpperCase():""}
+function visible(){return items.filter(x=>(!filters.query||x.title.toLowerCase().includes(filters.query))&&(filters.type==="all"||x.type===filters.type)&&(filters.category==="all"||x.category===filters.category)&&(filters.returned||x.status!=="returned"))}
+function card(x){return `<article class="card" data-item="${esc(x.id)}"><div class="${x.image_url?"":"placeholder"}">${x.image_url?`<img class="card-image" src="${esc(x.image_url)}" alt="Photo of ${esc(x.title)}" loading="lazy" decoding="async">`:"◌"}</div><div class="card-body"><div class="meta"><span class="badge ${x.type}">${esc(x.type)}</span><span class="badge">${esc(x.category)}</span>${x.status==="returned"?'<span class="badge returned">✓ returned</span>':''}</div><h3>${esc(x.title)}</h3><p>${esc(x.description||"No description provided.")}</p><div class="card-foot"><span>${esc(x.location||"Location not set")}</span><span>${esc(posted(x.created_at))}</span></div></div></article>`}
+function browse(){app.innerHTML=`<section class="hero"><div><div class="eyebrow">CampusTech / Lost & Found</div><h1><span>Lost something?</span><span>Found something?</span></h1><p>Post it here. Help it find its way back.</p></div><div class="hero-mark" aria-hidden="true">·⠂</div></section><section class="controls"><label class="search-box"><span aria-hidden="true">⌕</span><span class="sr-only">Search items</span><input id="search" type="search" placeholder="Search by title" value="${esc(filters.query)}"></label><div class="filter-line" id="types"><button class="segmented ${filters.type==="all"?"active":""}" data-type="all">All</button><button class="segmented ${filters.type==="lost"?"active":""}" data-type="lost">Lost</button><button class="segmented ${filters.type==="found"?"active":""}" data-type="found">Found</button><button class="segmented ${filters.returned?"active":""}" id="returned-toggle">Show returned</button></div><div class="filter-line" id="categories"><button class="chip ${filters.category==="all"?"active":""}" data-category="all">Everything</button>${categories.map(c=>`<button class="chip ${filters.category===c?"active":""}" data-category="${esc(c)}">${esc(c)}</button>`).join("")}</div></section><div class="section-head"><h2>Recent posts</h2><span class="count" id="count"></span></div><section class="items-grid" id="items">${visible().map(card).join("")}</section><div id="empty" class="empty" hidden><div class="dot-art">· · ·<br>· ● ·<br>· · ·</div><h2>Nothing here yet.</h2><p>Be the helpful person who starts the trail.</p><button class="button accent" id="empty-post">Post an item</button></div><div class="load-more"><button class="button" id="load-more" ${hasMore?"":"hidden"}>Load more</button></div>`;document.querySelector("#count").textContent=`${visible().length} ${visible().length===1?"item":"items"}`;document.querySelector("#empty").hidden=visible().length>0;wireBrowse()}
+function wireBrowse(){document.querySelector("#search").oninput=e=>{filters.query=e.target.value.trim().toLowerCase();browse()};document.querySelector("#types").onclick=e=>{if(e.target.dataset.type)filters.type=e.target.dataset.type;if(e.target.id==="returned-toggle")filters.returned=!filters.returned;browse()};document.querySelector("#categories").onclick=e=>{if(e.target.dataset.category){filters.category=e.target.dataset.category;browse()}};document.querySelector("#items").onclick=e=>{const c=e.target.closest("[data-item]");if(c)openDetail(items.find(x=>x.id===c.dataset.item))};document.querySelector("#load-more").onclick=loadMore;document.querySelector("#empty-post").onclick=()=>user?openPost():location.hash="#/login"}
+function openDetail(x){if(!x)return;const owner=user&&x.user_id===user.id;const contact=x.item_contacts?.[0]?.contact||x.contact;content.innerHTML=`<div class="eyebrow">${esc(x.type)} / ${esc(x.category)}</div><h2 id="sheet-title">${esc(x.title)}</h2><p class="sheet-intro">${esc(x.description||"No description provided.")}</p>${x.image_url?`<img class="detail-image" src="${esc(x.image_url)}" alt="Photo of ${esc(x.title)}">`:""}<dl class="detail-list"><div><dt>Location</dt><dd>${esc(x.location||"Not provided")}</dd></div><div><dt>Date</dt><dd>${esc(date(x.item_date))}</dd></div><div><dt>Posted</dt><dd>${esc(posted(x.created_at))}</dd></div><div><dt>Status</dt><dd>${x.status==="returned"?"Returned":"Open"}</dd></div></dl>${user?`<div class="locked" style="color:var(--text)"><strong>Contact</strong><br><a href="${/^\+?[0-9 ()-]{7,}$/.test(contact||"")?`tel:${esc(contact)}`:"#"}" id="contact-copy">${esc(contact||"No contact provided")}</a></div>`:`<div class="locked">Contact details are private.<br><button class="button primary" id="detail-login">Sign in with Google to see contact</button></div>`}${owner&&x.status==="open"?`<div class="form-actions"><button class="button accent" id="mark-return">Mark as returned</button><button class="button danger" id="delete-item">Delete</button></div>`:""}<div class="form-actions"><button class="button" id="share-item">Share item</button></div>`;openSheet();document.querySelector("#detail-login")?.addEventListener("click",()=>{closeSheet();location.hash="#/login"});document.querySelector("#contact-copy")?.addEventListener("click",e=>{if(e.currentTarget.getAttribute("href")==="#"){e.preventDefault();navigator.clipboard?.writeText(contact);notify("Contact copied")}});document.querySelector("#share-item").onclick=()=>share(x);document.querySelector("#mark-return")?.addEventListener("click",()=>openReturn(x));document.querySelector("#delete-item")?.addEventListener("click",()=>remove(x))}
+function openSheet(){sheet.hidden=false;document.querySelector(".sheet-close").focus()}function closeSheet(){sheet.hidden=true;content.textContent=""}function share(x){const url=`${location.origin}${location.pathname}#item=${x.id}`;if(navigator.share)navigator.share({title:x.title,url}).catch(()=>{});else navigator.clipboard?.writeText(url).then(()=>notify("Link copied"))}
+function login(){app.innerHTML=`<section class="login"><div class="login-card"><div class="signal" aria-hidden="true">${Array.from({length:81},(_,i)=>`<i class="${i===40?"hot":""}" style="animation-delay:${(i%9)*.06}s"></i>`).join("")}</div><div class="eyebrow">CampusTech / Lost & Found</div><h1>LOST.<br>FOUND.<br>RETURNED<span style="color:var(--accent)">.</span></h1><p>One small signal can find its way home.</p><button class="button primary" id="google-login"><span style="color:var(--accent)">●</span>&nbsp; Continue with Google</button><a class="guest" href="#/browse">Continue as guest</a><div class="note">ANY GOOGLE ACCOUNT WORKS.</div></div></section>`;document.querySelector("#google-login").onclick=async()=>{const r=await signIn();if(r.error)notify(r.error.message||"Sign-in failed. Try again.",true);else{setUser(r.data?.user||user);location.hash="#/browse"}}}
+function openPost(){content.innerHTML=`<div class="eyebrow">Create a post</div><h2 id="sheet-title">Help it find its way back.</h2><p class="sheet-intro">The useful details are the kindest details.</p><form class="form" id="post-form"><label>Type<select name="type"><option value="lost">Lost</option><option value="found">Found</option></select></label><label>Title<input name="title" maxlength="100" required placeholder="e.g. Blue water bottle"></label><label>Description<textarea name="description" maxlength="1000" placeholder="Colour, marks, what was inside…"></textarea><small class="mono" id="desc-count">0 / 1000</small></label><label>Category<select name="category">${categories.map(c=>`<option>${c}</option>`).join("")}</select></label><label>Location<input name="location" maxlength="120" placeholder="Where was it last seen?"></label><label>Date<input name="item_date" type="date" max="${today()}" value="${today()}"></label><label>Contact<input name="contact" maxlength="120" required placeholder="Email, phone, or roll number"></label><label>Photo<input name="photo" type="file" accept="image/*" capture="environment"></label><div class="form-actions"><button class="button accent" type="submit">Publish post</button><button class="button" type="button" data-close>Cancel</button></div></form>`;openSheet();document.querySelector("#post-form textarea").oninput=e=>document.querySelector("#desc-count").textContent=`${e.target.value.length} / 1000`;document.querySelector("#post-form").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),b=e.target.querySelector("button[type=submit]");b.disabled=true;try{const r=await createItem({type:f.get("type"),title:f.get("title").trim(),description:f.get("description").trim()||null,category:f.get("category"),location:f.get("location").trim()||null,item_date:f.get("item_date")||null},f.get("photo"),user.id);if(r.error)throw r.error;closeSheet();await refresh();notify("Your post is live.")}catch(err){notify(err.message||"Could not publish post",true)}finally{b.disabled=false}}}
+function openReturn(x){content.innerHTML=`<div class="eyebrow">Record a return</div><h2 id="sheet-title">${esc(x.title)}</h2><form class="form" id="return-form"><label>Returned to name<input name="returned_to_name" required></label><label>Their contact or roll number<input name="returned_to_contact"></label><label>Returned on<input name="returned_on" type="date" value="${today()}" required></label><label>Handover location<input name="handover_location"></label><label>How was ownership verified?<textarea name="verification_notes"></textarea></label><button class="button accent" type="submit">Mark as returned</button></form>`;openSheet();document.querySelector("#return-form").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),r=await createReturn({item_id:x.id,recorded_by:user.id,returned_to_name:f.get("returned_to_name").trim(),returned_to_contact:f.get("returned_to_contact").trim()||null,returned_on:f.get("returned_on"),handover_location:f.get("handover_location").trim()||null,verification_notes:f.get("verification_notes").trim()||null});if(r.error)notify(r.error.message,true);else{closeSheet();await refresh();notify("Return recorded.")}}}
+async function remove(x){if(!confirm("Delete this post? This cannot be undone."))return;const r=await deleteItem(x.id);if(r.error)notify(r.error.message,true);else{closeSheet();await refresh();notify("Post deleted.")}}
+async function loadMore(){if(!hasMore)return;const r=await listItems({limit:20,offset});if(r.error)return notify(r.error.message,true);items.push(...(r.data||[]));offset+=20;hasMore=(r.data||[]).length===20;browse()}
+async function refresh(){const r=await listItems({limit:20,offset:0});if(r.error)return notify(r.error.message,true);items=r.data||[];offset=items.length;hasMore=items.length===20;if(location.hash.startsWith("#/mine"))mine();else browse()}
+function mine(){const mine=items.filter(x=>x.user_id===user?.id);app.innerHTML=`<section class="hero"><div><div class="eyebrow">Your activity</div><h1>MY POSTS<span style="color:var(--accent)">.</span></h1><p>Keep the signal moving.</p></div></section><div class="section-head"><h2>${mine.length} posts</h2></div><section class="items-grid">${mine.length?mine.map(card).join(""):`<div class="empty"><div class="dot-art">●</div><h2>No posts yet.</h2><button class="button accent" id="mine-post">Post an item</button></div>`}</section>`;document.querySelectorAll("[data-item]").forEach(x=>x.onclick=()=>openDetail(items.find(i=>i.id===x.dataset.item)));document.querySelector("#mine-post")?.addEventListener("click",openPost)}
+async function route(){const h=location.hash||"#/browse";if(h.startsWith("#/login"))return login();if(h.startsWith("#/mine")){if(!user){location.hash="#/login";return}return mine()}if(h.includes("#item=")){const id=h.split("#item=")[1];return openDetail(items.find(x=>x.id===id))}browse()}
+document.querySelector("#auth-button").onclick=async()=>{if(user){await signOut();setUser(null);notify("Signed out.")}else location.hash="#/login"};document.querySelector("#post-nav").onclick=()=>user?openPost():location.hash="#/login";document.querySelector(".sheet").onclick=e=>{if(e.target.dataset.close!==undefined||e.target.classList.contains("sheet-backdrop"))closeSheet()};document.querySelectorAll("[data-nav]").forEach(a=>a.addEventListener("click",()=>setTimeout(route,0)));window.addEventListener("hashchange",route);
+(async()=>{if(isDemo)document.querySelector("#demo-banner").hidden=false;const s=await getSession();setUser(s.data?.session?.user||null);onAuthChange((_e,session)=>{setUser(session?.user||null);if(session?.user)refresh()});await refresh();if(location.hash.startsWith("#/login")||location.hash.includes("#item="))route()})();
