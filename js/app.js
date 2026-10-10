@@ -1,5 +1,5 @@
 /* Developed by Pughal Jeyaprakash */
-import { categories, createItem, createReturn, deleteItem, getProfile, getSession, isDemo, listItems, listReports, onAuthChange, reportImage, signIn, signInAdmin, signOut, updateItem } from "./api.js?v=20261007-1";
+import { categories, createItem, createReturn, deleteItem, getProfile, getSession, isDemo, listItems, listReports, onAuthChange, reportImage, signIn, signInAdmin, signOut, updateItem } from "./api.js?v=20261010-2";
 const app=document.querySelector("#app"),sheet=document.querySelector("#sheet"),content=document.querySelector("#sheet-content"),toast=document.querySelector("#toast");let user=null,isAdmin=false,items=[],filters={query:"",type:"all",category:"all",returned:false},offset=0,hasMore=true;
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));const today=()=>new Date().toISOString().slice(0,10);const date=v=>v?new Date(`${v}T00:00:00`).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}):"Date not set";const posted=v=>v?new Date(v).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"Just now";
 function notify(msg,error=false){toast.textContent=msg;toast.className=`toast${error?" error":""}`;toast.hidden=false;setTimeout(()=>toast.hidden=true,3400)}
