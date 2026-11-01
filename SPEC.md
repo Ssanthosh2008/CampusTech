@@ -127,18 +127,21 @@ CampusTech/
 | Confirm Prompt | `confirm(...)` | `AlertDialog` |
 
 ## 9. Phased Fix & Migration Plan
-- **Step 1:** Add project specification (`SPEC.md`).
-- **Step 2:** Apply fixes to existing vanilla code in isolated commits.
-- **Step 3:** Setup project tooling (Vite, React, TypeScript, Tailwind, shadcn/ui, ESLint, Prettier).
-- **Step 4:** Port the application to typed React components with full feature parity and bug fixes.
-- **Step 5:** Cleanup legacy code, finalize documentation, and verify builds.
+- **Step 1:** Add project specification (`SPEC.md`) [COMPLETED].
+- **Step 2:** Apply fixes to existing vanilla code in isolated commits [COMPLETED].
+- **Step 3:** Setup project tooling (Vite, React, TypeScript, Tailwind, shadcn/ui, ESLint, Prettier) [COMPLETED].
+- **Step 4:** Port the application to typed React components with full feature parity and bug fixes [COMPLETED].
+- **Step 5:** Cleanup legacy code, finalize documentation, and verify builds [COMPLETED].
 
 ## 10. Autonomous Decisions Log
 1. **Branch Management:** All modernization work strictly isolated to branch `modernize`. `main` branch remains untouched.
 2. **Hosting Configurations:** `vercel.json` and `firebase.json` left untouched per hard rule #2.
-3. **Database Credentials:** Hardcoded credentials retained as fallbacks in `lib/supabase.ts` so zero-configuration builds succeed immediately without requiring manual `.env` setup.
+3. **Database Credentials:** Hardcoded credentials retained as fallbacks in `src/lib/config.ts` and `src/lib/supabase.ts` so zero-configuration builds succeed immediately without requiring manual `.env` setup.
 4. **SQL Migrations:** Migration `20261101000000_contact_privacy.sql` created as a file only; no database execution performed.
 5. **BlazeFace Fallback:** Face detection wrapped in an async timeout (2.5s) with try/catch. If weights fail or timeout, the photo upload continues gracefully with a console warning instead of blocking the user from submitting a post.
 6. **Date Formatting:** Replaced UTC `toISOString().slice(0, 10)` with local timezone calendar date `new Date().toLocaleDateString('en-CA')` (YYYY-MM-DD format).
 7. **Font Consolidation:** Kept `Plus Jakarta Sans` as the unified typography token across all components, discarding conflicting `Smooch Sans` and `Space Mono` fonts for visual coherence.
 8. **Theme Consistency:** Unified the accent color to `#f0642f` across all CSS variables, meta tags, and Tailwind color extensions, matching light and dark modes.
+9. **Component Primitives:** Implemented modern accessible dialogs, sheets, alerts, cards, and buttons using shadcn/ui and `@base-ui/react` primitives.
+10. **Global Delete Confirmation:** Replaced browser `confirm()` dialogs with custom shadcn `AlertDialog` components for item deletion and admin image removal.
+11. **Mobile Safe Area & Chip Hints:** Implemented `calc(4rem + env(safe-area-inset-bottom))` for the mobile bottom nav bar and elevated FAB, along with a right-edge gradient fade indicator for horizontally scrolling category chips.
