@@ -4,6 +4,16 @@ import { useAuth } from "@/context/AuthContext";
 import { useHashRouter } from "@/context/HashRouterContext";
 import { getItemContact, updateItem } from "@/lib/api";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -39,6 +49,7 @@ export const ItemDetailSheet: React.FC<ItemDetailSheetProps> = ({
   const { navigate } = useHashRouter();
   const [fetchedContact, setFetchedContact] = useState<string | null>(null);
   const [loadingContact, setLoadingContact] = useState<boolean>(false);
+  const [isRemoveImageOpen, setIsRemoveImageOpen] = useState(false);
 
   useEffect(() => {
     if (!item || !isOpen || item.contact || !user) {
@@ -232,7 +243,7 @@ export const ItemDetailSheet: React.FC<ItemDetailSheetProps> = ({
               {item.image_url && (
                 <Button
                   variant="destructive"
-                  onClick={handleRemoveImage}
+                  onClick={() => setIsRemoveImageOpen(true)}
                   className="font-semibold"
                 >
                   Remove image
@@ -260,6 +271,30 @@ export const ItemDetailSheet: React.FC<ItemDetailSheetProps> = ({
             Share item
           </Button>
         </div>
+
+        {/* Remove Image Confirmation */}
+        <AlertDialog open={isRemoveImageOpen} onOpenChange={setIsRemoveImageOpen}>
+          <AlertDialogContent className="bg-card border-border sm:rounded-2xl p-6">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl font-bold">Remove this image?</AlertDialogTitle>
+              <AlertDialogDescription className="text-sm text-muted-foreground">
+                This will remove the photo from the post immediately.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-4 gap-2">
+              <AlertDialogCancel className="rounded-xl font-semibold">Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setIsRemoveImageOpen(false);
+                  handleRemoveImage();
+                }}
+                className="bg-destructive hover:bg-destructive/90 text-white rounded-xl font-semibold"
+              >
+                Remove image
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SheetContent>
     </Sheet>
   );
