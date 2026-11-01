@@ -22,7 +22,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenPost }) => {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-16 bg-card/95 border-t border-border backdrop-blur-md px-6 flex items-center justify-around pb-[env(safe-area-inset-bottom)]"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-[calc(4rem+env(safe-area-inset-bottom))] bg-card/95 border-t border-border backdrop-blur-md px-6 flex items-center justify-around pb-[env(safe-area-inset-bottom)]"
       aria-label="Primary navigation"
     >
       <a
@@ -35,14 +35,16 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenPost }) => {
         <span>Browse</span>
       </a>
 
-      <button
-        type="button"
-        onClick={handlePostClick}
-        aria-label="Post an item"
-        className="w-13 h-13 -mt-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center shadow-lg shadow-accent/25 hover:scale-105 active:scale-95 transition-transform"
-      >
-        <Plus className="w-7 h-7 text-white stroke-[2.5]" />
-      </button>
+      <div className="relative -top-3">
+        <button
+          type="button"
+          onClick={handlePostClick}
+          aria-label="Post an item"
+          className="w-14 h-14 rounded-full bg-accent text-accent-foreground flex items-center justify-center shadow-lg shadow-accent/25 hover:scale-105 active:scale-95 transition-transform"
+        >
+          <Plus className="w-7 h-7 text-white stroke-[2.5]" />
+        </button>
+      </div>
 
       <a
         href={user ? "#/mine" : "#/login"}

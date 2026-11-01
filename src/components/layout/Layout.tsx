@@ -13,7 +13,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, onOpenPost }) => {
     <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-accent/20 selection:text-accent">
       <DemoBanner />
       <Topbar />
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 md:py-10 pb-28 md:pb-16 focus:outline-none">
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 md:py-10 pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-16 focus:outline-none">
         {children}
       </main>
       <BottomNav onOpenPost={onOpenPost} />

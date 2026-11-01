@@ -75,8 +75,8 @@ export const BrowseFilters: React.FC<BrowseFiltersProps> = ({ filters, onChange 
       </div>
 
       {/* Category Chips Bar with scroll hint */}
-      <div className="relative">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+      <div className="relative group">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pr-6 scrollbar-none">
           <Badge
             variant={filters.category === "all" ? "default" : "outline"}
             onClick={() => onChange({ ...filters, category: "all" })}
@@ -104,6 +104,8 @@ export const BrowseFilters: React.FC<BrowseFiltersProps> = ({ filters, onChange 
             </Badge>
           ))}
         </div>
+        {/* Visual scroll hint gradient on right edge */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-background via-background/80 to-transparent" />
       </div>
     </section>
   );
