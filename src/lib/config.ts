@@ -14,3 +14,4 @@ export const isDemo: boolean =
   supabaseUrl.includes("YOUR_") ||
   !supabasePublishableKey ||
   supabasePublishableKey.includes("YOUR_");
+

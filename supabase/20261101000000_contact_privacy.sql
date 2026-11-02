@@ -41,3 +41,4 @@ alter table public.item_contacts enable row level security;
 drop policy if exists "contacts readable by signed-in" on public.item_contacts;
 create policy "contacts readable by signed-in" on public.item_contacts
   for select to authenticated using (true);
+

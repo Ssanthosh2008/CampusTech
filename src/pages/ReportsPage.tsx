@@ -167,3 +167,4 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onOpenDeleteAlert }) =
     </div>
   );
 };
+

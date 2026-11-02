@@ -151,3 +151,4 @@ export const MinePage: React.FC<MinePageProps> = ({
     </div>
   );
 };
+
