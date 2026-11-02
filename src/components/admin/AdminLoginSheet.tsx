@@ -46,7 +46,7 @@ export const AdminLoginSheet: React.FC<AdminLoginSheetProps> = ({ isOpen, onClos
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         side="bottom"
-        className="max-h-[92dvh] sm:max-w-md sm:rounded-2xl sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 border-border bg-card p-6 sm:p-8"
+        className="max-h-[92dvh] sm:max-w-md sm:rounded-2xl sm:inset-x-auto sm:right-auto sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 border-border bg-card p-6 sm:p-8"
       >
         <SheetHeader className="text-left space-y-1 pb-2">
           <div className="text-xs uppercase tracking-widest text-muted-foreground font-mono">
