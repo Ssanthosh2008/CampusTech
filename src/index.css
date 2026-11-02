@@ -5,6 +5,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     --background: 33 24% 92%;      /* #f1ece6 */
     --foreground: 24 20% 10%;      /* #1d1713 */
     --card: 33 100% 98%;           /* #fff9f3 */
@@ -27,58 +28,13 @@
     --radius: 0.75rem;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --background: 21 24% 7%;        /* #17110e */
-      --foreground: 26 100% 96%;      /* #fff2e9 */
-      --card: 22 22% 11%;             /* #211915 */
-      --card-foreground: 26 100% 96%;
-      --popover: 22 22% 11%;
-      --popover-foreground: 26 100% 96%;
-      --primary: 26 100% 96%;
-      --primary-foreground: 21 24% 7%;
-      --secondary: 19 32% 15%;        /* #34231b */
-      --secondary-foreground: 26 100% 96%;
-      --muted: 19 32% 15%;
-      --muted-foreground: 22 27% 69%; /* #c4a99a */
-      --accent: 17 100% 63%;          /* #ff7a43 - vibrant dark orange */
-      --accent-foreground: 21 24% 7%;
-      --destructive: 0 72% 60%;       /* #e05252 */
-      --destructive-foreground: 0 0% 100%;
-      --border: 21 31% 24%;           /* #51382b */
-      --input: 21 31% 24%;
-      --ring: 17 100% 63%;
-    }
-  }
-
-  .dark {
-    --background: 21 24% 7%;
-    --foreground: 26 100% 96%;
-    --card: 22 22% 11%;
-    --card-foreground: 26 100% 96%;
-    --popover: 22 22% 11%;
-    --popover-foreground: 26 100% 96%;
-    --primary: 26 100% 96%;
-    --primary-foreground: 21 24% 7%;
-    --secondary: 19 32% 15%;
-    --secondary-foreground: 26 100% 96%;
-    --muted: 19 32% 15%;
-    --muted-foreground: 22 27% 69%;
-    --accent: 17 100% 63%;
-    --accent-foreground: 21 24% 7%;
-    --destructive: 0 72% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 21 31% 24%;
-    --input: 21 31% 24%;
-    --ring: 17 100% 63%;
-  }
-
   * {
     @apply border-border;
     box-sizing: border-box;
   }
 
   html {
+    color-scheme: light;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
