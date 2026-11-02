@@ -1,3 +1,7 @@
+# Dependencies
+node_modules/
+dist/
+
 # Firebase local cache
 .firebase/
 .firebase-debug.log
@@ -9,4 +13,8 @@ firestore-debug.log
 
 # Local secrets and test artifacts
 .env
+.env.*
+!.env.example
 *.local
+
+*.tsbuildinfo
