@@ -107,6 +107,29 @@ CampusTech/
 7. **"My Posts" Card Event Propagation (Low):** Admin buttons triggered card detail open. Fix: stop event propagation on action buttons.
 8. **Date UTC Desync (Low):** `toISOString().slice(0, 10)` caused date input desync in timezones ahead/behind UTC. Fix: use local calendar date.
 9. **No Photo Removal Option (Low):** Form had no button to deselect an image. Fix: add clear photo button.
+10. **Popup Positioning Shift on Desktop (High):** Item detail and admin password popups rendered shifted off-center and clipped on desktop. Fix: detailed root cause documented below; resolved using Portal dialogs and proper centering.
+
+### Popup Positioning Root Cause
+In the legacy vanilla application, the item detail popup and the admin password popup rendered shifted off the left edge or distorted on desktop viewports. Investigation of `css/style.css` and `css/admin.css` revealed the following compounded root causes:
+
+1. **Conflicting Inset Constraints (`left: 0; right: 0` vs `left: 50%; right: auto`):**
+   The base mobile sheet rule in `style.css` set:
+   `.sheet-panel { position: absolute; bottom: 0; left: 0; right: 0; }`
+   In the desktop media query (`@media(min-width:640px)`), `left: 50%; right: auto;` was introduced alongside `width: min(620px, calc(100% - 40px))`. When combined with utility-generated stylesheets or responsive cascades, if `right: auto` was overridden or not cleared (e.g. `inset-x-0` specifying both `left: 0` and `right: 0`), the element was constrained between `left: 50%` and `right: 0`, stretching across the right half of the screen and pulling the modal off center.
+
+2. **Inverted Vertical Centering (`bottom: 50%; transform: translate(-50%, 50%)`):**
+   Standard modal centering positions an element with `top: 50%; left: 50%; transform: translate(-50%, -50%)`. The legacy stylesheet instead anchored the bottom of the panel with `bottom: 50%` and applied a positive vertical translation `translateY(+50%)`. In CSS coordinate geometry, a positive Y translation shifts an element downwards towards the viewport bottom. For tall modal content (such as item details with images, metadata, and buttons, or forms with `max-height: 88vh`), this inverted translation pushed the lower portion of the modal below the viewport boundary, causing extreme clipping and scrollbar misalignment.
+
+3. **Keyframe Transforms Overriding Layout Translations:**
+   `css/style.css` included global CSS keyframes such as:
+   `@keyframes travel { 0% { transform: translate(0); } ... }`
+   In CSS, `transform` is a singular property. Any active animation or keyframe affecting an element or inheriting transform properties completely overrides `transform: translate(-50%, 50%)`. Once the `-50%` horizontal translation was wiped out by a keyframe setting `transform: translate(0)`, `left: 50%` positioned the left edge of the popup at the horizontal center of the screen, throwing the entire popup off to the side.
+
+4. **Parent Transforms Nullifying `position: fixed`:**
+   Per CSS specification, any ancestor element with a CSS `transform`, `filter`, or `perspective` creates a new containing block for `position: fixed` elements. Whenever modals were triggered from within animated page sections (such as `.login` containing the animated `.signal` matrix), fixed coordinates were calculated relative to that transformed section rather than the viewport window.
+
+5. **Modern Fix in React + shadcn/ui:**
+   In the modern stack, all dialogs and sheets utilize `@base-ui/react` dialog primitives with portal rendering (`<SheetPortal>` / `<DialogPortal>`) directly to `document.body`, completely isolating them from parent transforms. Furthermore, desktop popups are explicitly styled with `fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2` and `sm:inset-x-auto sm:right-auto sm:bottom-auto`, guaranteeing pixel-perfect centering on all screen sizes.
 
 ## 8. UI Migration Map to shadcn/ui
 
